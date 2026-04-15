@@ -52,11 +52,18 @@ mod tests {
     #[test]
     fn bare_name_expands_to_community_registry() {
         let _guard = env_lock().lock().unwrap();
+        let key = "OPENSHELL_COMMUNITY_REGISTRY";
+        let prev = std::env::var(key).ok();
+        unsafe { std::env::remove_var(key) };
         let result = resolve_community_image("base");
         assert_eq!(
             result,
             "ghcr.io/nvidia/openshell-community/sandboxes/base:latest"
         );
+        match prev {
+            Some(v) => unsafe { std::env::set_var(key, v) },
+            None => {}
+        }
     }
 
     #[test]
@@ -66,11 +73,10 @@ mod tests {
         // are not run concurrently with other tests reading the same var.
         let key = "OPENSHELL_COMMUNITY_REGISTRY";
         let prev = std::env::var(key).ok();
-        // SAFETY: single-threaded test context; no other thread reads this var.
+        // SAFETY: protected by env_lock(); no other test reads this var concurrently.
         unsafe { std::env::set_var(key, "my-registry.example.com/sandboxes") };
         let result = resolve_community_image("python");
         assert_eq!(result, "my-registry.example.com/sandboxes/python:latest");
-        // Restore.
         match prev {
             Some(v) => unsafe { std::env::set_var(key, v) },
             None => unsafe { std::env::remove_var(key) },
@@ -103,7 +109,7 @@ mod tests {
         let _guard = env_lock().lock().unwrap();
         let key = "OPENSHELL_COMMUNITY_REGISTRY";
         let prev = std::env::var(key).ok();
-        // SAFETY: single-threaded test context; no other thread reads this var.
+        // SAFETY: protected by env_lock(); no other test reads this var concurrently.
         unsafe { std::env::set_var(key, "my-registry.example.com/sandboxes/") };
         let result = resolve_community_image("base");
         assert_eq!(result, "my-registry.example.com/sandboxes/base:latest");
