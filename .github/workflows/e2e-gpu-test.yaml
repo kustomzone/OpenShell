@@ -45,6 +45,8 @@ jobs:
       options: --privileged
       volumes:
         - /var/run/docker.sock:/var/run/docker.sock
+        - /etc/cdi:/etc/cdi
+        - /var/run/cdi:/var/run/cdi
     env:
       MISE_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       IMAGE_TAG: ${{ inputs.image-tag }}
@@ -69,12 +71,21 @@ jobs:
       - name: Generate CDI spec (WSL2)
         if: matrix.name == 'wsl-amd64'
         run: |
+          docker info
           docker run --rm --privileged \
             -v /var/run/cdi:/var/run/cdi \
+            -v /etc/cdi:/etc/cdi \
             -v /usr/lib/wsl:/usr/lib/wsl \
             --entrypoint nvidia-ctk \
             ghcr.io/nvidia/openshell/cluster:${{ inputs.image-tag }} \
-            cdi generate --mode=wsl --output=/var/run/cdi/nvidia.yaml
+            cdi list
+          docker run --rm --privileged \
+            -v /var/run/cdi:/var/run/cdi \
+            -v /etc/cdi:/etc/cdi \
+            -v /usr/lib/wsl:/usr/lib/wsl \
+            --entrypoint nvidia-ctk \
+            ghcr.io/nvidia/openshell/cluster:${{ inputs.image-tag }} \
+            --version
 
       - name: Bootstrap GPU cluster
         env:
