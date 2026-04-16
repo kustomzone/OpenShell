@@ -66,6 +66,16 @@ jobs:
       - name: Install Python dependencies and generate protobuf stubs
         run: uv sync --frozen && mise run --no-prepare python:proto
 
+      - name: Generate CDI spec (WSL2)
+        if: matrix.name == 'wsl-amd64'
+        run: |
+          docker run --rm --privileged \
+            -v /var/run/cdi:/var/run/cdi \
+            -v /usr/lib/wsl:/usr/lib/wsl \
+            --entrypoint nvidia-ctk \
+            ghcr.io/nvidia/openshell/cluster:${{ inputs.image-tag }} \
+            cdi generate --mode=wsl --output=/var/run/cdi/nvidia.yaml
+
       - name: Bootstrap GPU cluster
         env:
           GATEWAY_HOST: host.docker.internal
